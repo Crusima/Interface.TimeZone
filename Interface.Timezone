@@ -1,0 +1,124 @@
+(function(plugin) {
+    'use strict';
+
+    var Module = (function() {
+        var _version   = '0.1.26';
+        var _namespace = 'CTW2.Plugin.Interface.TimeZone';
+
+        var _clock;
+        var _timer;
+        var _type = 'UTC';
+        var _types = {
+            UTC: 0,
+            PST: -8,
+            PDT: -7,
+            CET: 1
+        };
+
+        function zeroPad(number) {
+            if (number < 10) {
+                return '0' + number;
+            }
+
+            return number;
+        }
+
+        function tick() {
+            var now = new Date();
+
+            _clock.textContent = zeroPad(now.getUTCHours() + _types[_type]) + ':' + zeroPad(now.getUTCMinutes()) + ' ' + _type;
+        }
+
+        function enableHighlight() {
+            _clock.style.color = '#ffff33';
+        }
+
+        function disableHighlight() {
+            _clock.style.color = '#ffffff';
+        }
+
+        function changeType() {
+            var found = false;
+
+            for (var type in _types) {
+                if (found) {
+                    _type = type;
+
+                    localStorage.setItem('CTW2.Plugin.Interface.TimeZone.type', _type)
+
+                    return;
+                }
+
+                if (type === _type) {
+                    found = true;
+                }
+            }
+
+            _type = 'UTC';
+
+            localStorage.setItem('CTW2.Plugin.Interface.TimeZone.type', _type)
+        }
+
+        function TimeZone() {
+            _type = 'UTC';
+
+            if (localStorage.getItem('CTW2.Plugin.Interface.TimeZone.type')) {
+                _type = localStorage.getItem('CTW2.Plugin.Interface.TimeZone.type');
+            }
+        }
+
+        TimeZone.prototype.getVersion = function() {
+            return _version;
+        };
+
+        TimeZone.prototype.getNamespace = function() {
+            return _namespace;
+        };
+
+        TimeZone.prototype.run = function() {
+            var readyInterval = setInterval(function() {
+                if (!document.getElementById('main-canvas')) {
+                    return;
+                }
+
+                clearInterval(readyInterval);
+
+                _clock = document.createElement('div');
+
+                _clock.setAttribute('style', 'color: white; position: absolute; bottom: 20px; right: 90px;z-index: 400;');
+                _clock.setAttribute('id', 'ctw2clock');
+
+                document.getElementById('main-canvas').parentNode.appendChild(_clock);
+
+                _clock.addEventListener('mouseover', enableHighlight);
+                _clock.addEventListener('mouseout', disableHighlight);
+                _clock.addEventListener('click', changeType);
+
+                _timer = setInterval(tick, 1000);
+            }, 50);
+        };
+
+        TimeZone.prototype.stop = function() {
+            clearInterval(_timer);
+
+            _clock = document.getElementById('ctw2clock');
+
+            if (!_clock) return;
+
+            _clock.removeEventListener('mouseover', enableHighlight);
+            _clock.removeEventListener('mouseout', disableHighlight);
+            _clock.removeEventListener('click', changeType);
+
+            _clock.parentNode.removeChild(_clock);
+        };
+
+        return TimeZone;
+    }());
+
+    var module = new Module();
+
+    newPluginName = module.getNamespace();
+
+    plugin.registerAndRun(module);
+}(_mainPlugin));
+
